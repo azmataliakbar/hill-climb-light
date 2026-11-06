@@ -1,6 +1,6 @@
 # Hill Climb Light — Neon Hill Run
 
-A neon 2D hill-climb driving game. Drive a two-wheel car over procedural hills, collect coins, and don't flip.
+A neon 2D hill-climb driving game. Drive a two-wheel car over procedural hills. Each session has three tries on the same track. Collect coins, go far, and keep the car on its wheels.
 
 ## Run
 
@@ -18,6 +18,12 @@ Open http://localhost:8080. ES modules need HTTP, so opening `index.html` direct
 - Keyboard: `W` / `↑` gas, `S` / `↓` brake, `A` / `←` tilt back, `D` / `→` tilt forward. `P` or `Esc` pauses.
 - Touch: **GAS** and **BRAKE** pedals, with **Tilt** buttons underneath. Keyboard and touch work together, and multi-touch is supported.
 
+## Sessions and difficulty
+
+- **Three tries:** each attempt ends when the car crashes. Attempt score = distance (m) + 10 per coin. The session total is the sum of the three.
+- **Replay track** keeps the same seed and difficulty. **New game** starts a new track.
+- **Easy** forgives tilt. **Hard** has a higher centre of mass, so throttle lifts the nose and brakes dip it. Holding a wheelie or a nose-dive past the warning angle for 0.8 s tips the car over.
+
 ## Layout
 
 - 270px and up: a square arena with the pedals underneath.
@@ -34,7 +40,9 @@ Open http://localhost:8080. ES modules need HTTP, so opening `index.html` direct
 | Loop | `src/engine/loop.js` | `requestAnimationFrame` with a fixed 1/240 s physics step. |
 | Rendering | `src/engine/renderer.js`, `src/ui/dial.js` | Canvas: terrain, vector car with spinning wheels, coins, dashboard dials. |
 | Input | `src/input/input.js` | Keyboard and pedals share one state. Each pointer is tracked by ID. |
-| Commands | `src/router/commands.js` | `game.start`, `game.saveCoins`, `game.saveHighScore`. |
+| Session | `src/game/session.js` | Three attempts, scoring, replay. |
+| Scenery | `src/game/scenery.js` | Far bushes and trees on a parallax layer, kept off the track. |
+| Commands | `src/router/commands.js` | `game.start`, `game.replaySession`, `game.finishAttempt`, `game.saveCoins`, `game.saveHighScore`. |
 | Storage | `src/storage/save.js` | localStorage under the namespace `hcl.v1.`. |
 
 ## Notes

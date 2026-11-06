@@ -65,6 +65,81 @@
   margin: 0;
 }
 
+.diff-group {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.diff-btn {
+  font: inherit;
+  font-weight: 700;
+  color: var(--text);
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.diff-btn[aria-pressed="true"] {
+  border-color: var(--magenta);
+  background: rgba(255, 45, 149, 0.18);
+  box-shadow: 0 0 16px rgba(255, 45, 149, 0.45);
+}
+
+.final-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.final-list p {
+  margin: 0;
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-row .btn {
+  flex: 1 1 0;
+  padding: 10px 8px;
+  font-size: 13px;
+}
+
+.chip--attempt b {
+  color: var(--lime);
+}
+
+.chip--warn {
+  color: #1a0410;
+  border-color: transparent;
+  background: var(--magenta);
+  font-weight: 700;
+  box-shadow: 0 0 14px rgba(255, 45, 149, 0.6);
+  animation: warn-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes warn-pulse {
+  from {
+    box-shadow: 0 0 6px rgba(255, 45, 149, 0.4);
+  }
+  to {
+    box-shadow: 0 0 18px rgba(255, 45, 149, 0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip--warn {
+    animation: none;
+  }
+}
+
 .hint {
   margin: 0;
   font-size: 12px;
@@ -286,4 +361,20 @@
 #btn-sound,
 #btn-pause {
   white-space: nowrap;
+}
+
+/* Phones: keep the menu cards short enough to show their buttons inside the square arena. */
+@media (max-width: 599px) {
+  .intro,
+  .hint--long {
+    display: none;
+  }
+
+  .card {
+    gap: 8px;
+  }
+
+  .card h2 {
+    font-size: 16px;
+  }
 }

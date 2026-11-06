@@ -3,19 +3,23 @@
  * stepRun is the only function that advances the game. It is deterministic for a given seed.
  */
 import { createTerrain } from '../physics/terrain.js';
-import { createCar, stepCar } from '../physics/vehicle.js';
+import { createCar, stepCar, pitchOf, TUNINGS } from '../physics/vehicle.js';
 import { createRng, randomSeed } from '../physics/rng.js';
 
+export const DIFFICULTY_NAMES = Object.freeze(Object.keys(TUNINGS));
 export const COIN_PICKUP_RADIUS = 1.6;
 const COIN_LOOKAHEAD = 80; // metres of coins generated ahead of the car
 const COIN_HEIGHT = 1.6; // coins float this far above the ground
 const COIN_START = 30;
 
-export function createRun({ seed = randomSeed() } = {}) {
+export function createRun({ seed = randomSeed(), difficulty = 'easy' } = {}) {
+  if (!TUNINGS[difficulty]) throw new RangeError(`Unknown difficulty: ${difficulty}`);
   const terrain = createTerrain(seed);
   const car = createCar(terrain, 0);
   return {
     seed,
+    difficulty,
+    tuning: TUNINGS[difficulty],
     terrain,
     car,
     startX: car.x,
@@ -26,6 +30,7 @@ export function createRun({ seed = randomSeed() } = {}) {
     runCoins: 0,
     distance: 0,
     elapsed: 0,
+    pitch: 0,
   };
 }
 
@@ -40,8 +45,9 @@ function generateCoinsUntil(run, untilX) {
 export function stepRun(run, input, dt) {
   if (run.status !== 'running') return run;
   const { car } = run;
-  stepCar(car, run.terrain, input, dt);
+  stepCar(car, run.terrain, input, dt, run.tuning);
   run.elapsed += dt;
+  run.pitch = pitchOf(car, run.terrain);
 
   generateCoinsUntil(run, car.x + COIN_LOOKAHEAD);
   for (const coin of run.coins) {

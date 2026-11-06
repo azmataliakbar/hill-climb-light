@@ -42,7 +42,7 @@ test('corrupt profile data reads as zero coins', () => {
 test('high scores are sorted by distance and capped at the top 10', () => {
   const hs = createHighScores(memoryStorage());
   for (let i = 1; i <= MAX_ENTRIES + 3; i += 1) {
-    hs.add({ name: `P${i}`, distance: i * 10, coins: 0 }, i);
+    hs.add({ name: `P${i}`, score: i * 10, distance: i * 10, coins: 0 }, i);
   }
   const list = hs.list();
   assert.equal(list.length, MAX_ENTRIES);
@@ -52,8 +52,8 @@ test('high scores are sorted by distance and capped at the top 10', () => {
 
 test('a run below the top 10 is not stored', () => {
   const hs = createHighScores(memoryStorage());
-  for (let i = 1; i <= MAX_ENTRIES; i += 1) hs.add({ name: `P${i}`, distance: 100 + i, coins: 0 }, i);
-  assert.deepEqual(hs.add({ name: 'low', distance: 1, coins: 0 }, 99), { rank: 0, persisted: false });
+  for (let i = 1; i <= MAX_ENTRIES; i += 1) hs.add({ name: `P${i}`, score: 100 + i, distance: 100 + i, coins: 0 }, i);
+  assert.deepEqual(hs.add({ name: 'low', score: 1, distance: 1, coins: 0 }, 99), { rank: 0, persisted: false });
 });
 
 test('a storage that refuses writes reports persisted: false', () => {
@@ -62,7 +62,7 @@ test('a storage that refuses writes reports persisted: false', () => {
     throw new Error('QuotaExceededError');
   };
   assert.equal(createProfile(storage).addCoins(3).persisted, false);
-  assert.equal(createHighScores(storage).add({ name: 'A', distance: 4, coins: 0 }).persisted, false);
+  assert.equal(createHighScores(storage).add({ name: 'A', score: 4, distance: 4, coins: 0 }).persisted, false);
 });
 
 test('with no storage, nothing is persisted and reads are empty', () => {

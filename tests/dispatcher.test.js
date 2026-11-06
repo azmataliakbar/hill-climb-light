@@ -46,7 +46,7 @@ test('game.start forwards a valid seed and rejects a bad one', () => {
   const f = fakes();
   const r = createGameCommands(f);
   assert.equal(r.dispatch('game.start', { seed: 77 }).ok, true);
-  assert.deepEqual(f.calls.start[0], { seed: 77 });
+  assert.equal(f.calls.start[0].seed, 77);
   assert.equal(r.dispatch('game.start', { seed: -1 }).error.code, ErrorCode.INVALID_PAYLOAD);
 });
 
@@ -63,8 +63,8 @@ test('game.saveCoins validates the amount and adds it to the profile', () => {
 test('game.saveHighScore validates distance and trims the name', () => {
   const f = fakes();
   const r = createGameCommands(f);
-  assert.equal(r.dispatch('game.saveHighScore', { distance: '5' }).error.code, ErrorCode.INVALID_PAYLOAD);
-  const ok = r.dispatch('game.saveHighScore', { distance: 42, coins: 3, name: '   Azmat-Ali-Champion  ' });
+  assert.equal(r.dispatch('game.saveHighScore', { score: 'x', distance: 5 }).error.code, ErrorCode.INVALID_PAYLOAD);
+  const ok = r.dispatch('game.saveHighScore', { score: 72, distance: 42, coins: 3, name: '   Azmat-Ali-Champion  ' });
   assert.equal(ok.ok, true);
   assert.equal(f.calls.scores[0].name, 'Azmat-Ali-Ch');
   assert.equal(f.calls.scores[0].coins, 3);

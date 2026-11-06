@@ -32,9 +32,25 @@ export const CAR = Object.freeze({
   aeroK: 2.0, // N s^2/m^2, quadratic air drag (top speed ~27 m/s)
   leanTorque: 250, // N m, air tilt torque
   throttleRate: 6, // 1/s, throttle ramp
+  weightTransferCap: 2500, // N m, limit on throttle-driven wheelie torque
+  diveCap: 600, // N m, limit on brake-driven nose-dive torque
+  pitchDamp: 200, // N m s/rad, pitch damping
 });
 
 export const CHASSIS_INERTIA = CAR.mass * ((2 * CAR.halfW) ** 2 + (2 * CAR.halfH) ** 2) / 12;
+
+/**
+ * Difficulty tuning.
+ * cgHeight: height of the centre of mass above the ground contact. Traction and braking
+ *   forces act at the contact, so a higher centre of mass gives more nose-up pitch under
+ *   throttle and more nose-down pitch under brakes (weight transfer).
+ * tipAngle: pitch relative to the ground (rad) past which the car tips over and the run ends.
+ * warnAngle: pitch (rad) past which the HUD shows a tilt warning.
+ */
+export const TUNINGS = Object.freeze({
+  easy: Object.freeze({ cgHeight: 0.8, tipAngle: 1.9, warnAngle: 0.2, tiltLimit: Infinity }),
+  hard: Object.freeze({ cgHeight: 2.5, tipAngle: 0.65, warnAngle: 0.14, tiltLimit: 0.8 }),
+});
 
 // Attachment points in the chassis frame. Rear wheel is driven.
 const ATTACH = Object.freeze([
@@ -53,6 +69,7 @@ export function createCar(terrain, x0 = 0) {
     omega: 0,
     throttle: 0,
     crashed: false,
+    tiltTime: 0,
     wheels: ATTACH.map((a) => ({
       x: x0 + a.x,
       y: y0 + a.y - CAR.restLength,
@@ -88,7 +105,12 @@ function rotate(car, lx, ly) {
  * Advance the car by dt seconds. `input` is {gas, brake, leanBack, leanForward} booleans.
  * Mutates and returns `car`.
  */
-export function stepCar(car, terrain, input, dt) {
+/** Pitch relative to the ground surface (rad). Positive = nose up. */
+export function pitchOf(car, terrain) {
+  return car.angle - Math.atan(terrain.slope(car.x));
+}
+
+export function stepCar(car, terrain, input, dt, tuning = TUNINGS.easy) {
   const cs = Math.cos(car.angle);
   const sn = Math.sin(car.angle);
 
@@ -103,6 +125,7 @@ export function stepCar(car, terrain, input, dt) {
   if (input.leanForward) tau -= CAR.leanTorque;
 
   const wheelForce = car.wheels.map(() => ({ x: 0, y: -CAR.wheelMass * CAR.gravity }));
+  let tractionTotal = 0; // net tangential ground force on the wheels (positive = forward)
 
   for (let i = 0; i < car.wheels.length; i += 1) {
     const w = car.wheels[i];
@@ -157,10 +180,21 @@ export function stepCar(car, terrain, input, dt) {
     ft -= vt * CAR.rollDamp;
     const cap = CAR.mu * normal;
     ft = Math.max(-cap, Math.min(cap, ft));
+    tractionTotal += ft;
 
     wf.x += ft * g.tx + normal * g.nx;
     wf.y += ft * g.ty + normal * g.ny;
   }
+
+  // Weight transfer: traction at the ground, below the centre of mass, pitches the chassis.
+  // Forward force behind/below the centre lifts the nose (positive torque).
+  // Wheelie (throttle) is capped at weightTransferCap. Nose-dive (brake) is capped much lower,
+  // because a large braking torque with the rear wheel airborne runs away into a flip.
+  // Pitch damping keeps the motion readable.
+  const weightTransfer = tuning.cgHeight * tractionTotal;
+  const limited = Math.max(-CAR.diveCap, Math.min(CAR.weightTransferCap, weightTransfer));
+  tau += limited;
+  tau -= CAR.pitchDamp * car.omega;
 
   // Integrate wheels (semi-implicit Euler)
   for (let i = 0; i < car.wheels.length; i += 1) {
@@ -196,5 +230,10 @@ export function stepCar(car, terrain, input, dt) {
       break;
     }
   }
+  // Tip-over. Pitch past tipAngle ends the run at once. Pitch past warnAngle for longer than
+  // tiltLimit seconds also ends it, so a held wheelie or dive is punished, not just a spike.
+  const pitch = Math.abs(pitchOf(car, terrain));
+  car.tiltTime = pitch > tuning.warnAngle ? car.tiltTime + dt : Math.max(0, car.tiltTime - 2 * dt);
+  if (pitch > tuning.tipAngle || car.tiltTime > tuning.tiltLimit) car.crashed = true;
   return car;
 }

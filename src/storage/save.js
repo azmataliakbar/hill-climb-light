@@ -60,13 +60,18 @@ export function sanitizeEntries(raw) {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((e) => e && typeof e.name === 'string' && Number.isFinite(e.distance) && e.distance >= 0)
-    .map((e) => ({
-      name: e.name.slice(0, NAME_MAX),
-      distance: Math.floor(e.distance),
-      coins: Number.isInteger(e.coins) && e.coins >= 0 ? e.coins : 0,
-      at: Number.isFinite(e.at) ? e.at : 0,
-    }))
-    .sort((a, b) => b.distance - a.distance || a.at - b.at)
+    .map((e) => {
+      const coins = Number.isInteger(e.coins) && e.coins >= 0 ? e.coins : 0;
+      const distance = Math.floor(e.distance);
+      return {
+        name: e.name.slice(0, NAME_MAX),
+        score: Number.isInteger(e.score) && e.score >= 0 ? e.score : distance + coins * 10,
+        distance,
+        coins,
+        at: Number.isFinite(e.at) ? e.at : 0,
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.at - b.at)
     .slice(0, MAX_ENTRIES);
 }
 
@@ -74,15 +79,21 @@ export function createHighScores(storage = null) {
   const read = () => sanitizeEntries(readVersioned(storage, HIGHSCORE_KEY)?.entries);
   return {
     list: read,
-    /** Returns {rank, persisted}. rank is 0 when the run misses the top list. */
-    add({ name, distance, coins }, now = Date.now()) {
+    /** Returns {rank, persisted}. Ranked by score. rank is 0 when the entry misses the top list. */
+    add({ name, score, distance, coins }, now = Date.now()) {
       const existing = read();
-      const d = Math.floor(distance);
-      const rank = existing.filter((e) => e.distance >= d).length + 1;
+      const s = Math.floor(score);
+      const rank = existing.filter((e) => e.score >= s).length + 1;
       if (rank > MAX_ENTRIES) return { rank: 0, persisted: false };
       const entries = sanitizeEntries([
         ...existing,
-        { name: name || 'PLAYER', distance: d, coins: Math.max(0, Math.floor(coins)), at: now },
+        {
+          name: name || 'PLAYER',
+          score: s,
+          distance: Math.floor(distance),
+          coins: Math.max(0, Math.floor(coins)),
+          at: now,
+        },
       ]);
       return { rank, persisted: writeVersioned(storage, HIGHSCORE_KEY, { entries }) };
     },
