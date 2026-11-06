@@ -1,0 +1,14 @@
+{
+  "name": "hill-climb-light",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hill Climb Light: a neon 2D hill-climb driving game with suspension physics, procedural hills, and an oscillator engine.",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

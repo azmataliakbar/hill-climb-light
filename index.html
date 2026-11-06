@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="Hill Climb Light: a neon 2D hill-climb driving game with suspension physics, procedural hills, and an oscillator engine." />
+  <title>Hill Climb Light — Neon Hill Run</title>
+  <link rel="stylesheet" href="styles/tokens.css" />
+  <link rel="stylesheet" href="styles/layout.css" />
+  <link rel="stylesheet" href="styles/controls.css" />
+</head>
+<body>
+  <div id="file-notice" class="file-notice" hidden>
+    <p><strong>The game isn't running yet.</strong></p>
+    <p>Opening this file directly from disk blocks the game script. Double-click <code>start.bat</code> in this folder, or run <code>npm start</code> and open <code>http://localhost:8080</code>.</p>
+  </div>
+  <script>
+    if (location.protocol === 'file:') document.getElementById('file-notice').hidden = false;
+  </script>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <h1 class="title">HILL CLIMB LIGHT</h1>
+        <p class="subtitle">Neon Hill Run</p>
+      </div>
+      <div class="hud-chips" aria-live="polite">
+        <span class="chip chip--dist"><b id="hud-dist">0</b> m</span>
+        <span class="chip chip--coin"><b id="hud-coins">0</b> coins</span>
+        <span class="chip chip--gear">Gear <b id="hud-gear">1</b></span>
+      </div>
+      <div class="topbar__actions">
+        <button id="btn-sound" class="btn btn--ghost" type="button">Sound on</button>
+        <button id="btn-pause" class="btn btn--ghost" type="button">Pause</button>
+      </div>
+    </header>
+
+    <main class="console">
+      <aside class="dash dash--left glass" aria-label="Speed and RPM dials">
+        <h2>Dials</h2>
+        <canvas id="dial-speed" class="dial" aria-label="Speed dial"></canvas>
+        <canvas id="dial-rpm" class="dial" aria-label="RPM dial"></canvas>
+      </aside>
+
+      <section class="stage">
+        <div id="arena-frame" class="arena">
+          <canvas id="arena" aria-label="Hill climb arena"></canvas>
+
+          <div id="overlay" class="overlay" hidden>
+            <div id="panel-menu" class="glass card" hidden>
+              <h2>Ready?</h2>
+              <p class="muted">Climb the hills, grab the coins, and don't flip.</p>
+              <p class="hint">Keys: W / ↑ gas · S / ↓ brake · A / D tilt</p>
+              <button id="btn-start" class="btn btn--primary" type="button">Start run</button>
+            </div>
+
+            <div id="panel-paused" class="glass card" hidden>
+              <h2>Paused</h2>
+              <button id="btn-resume" class="btn btn--primary" type="button">Resume</button>
+              <button id="btn-menu-paused" class="btn" type="button">Quit to menu</button>
+            </div>
+
+            <div id="panel-over" class="glass card" hidden>
+              <h2>Crashed</h2>
+              <p id="over-summary" class="muted"></p>
+              <label class="field">
+                <span>Your name</span>
+                <input id="player-name" type="text" maxlength="12" value="PLAYER" autocomplete="off" />
+              </label>
+              <button id="btn-save" class="btn btn--primary" type="button">Save score</button>
+              <p id="save-status" role="status"></p>
+              <button id="btn-again" class="btn" type="button">Run again</button>
+              <button id="btn-menu-over" class="btn" type="button">Menu</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pedals" aria-label="On-screen pedals">
+          <button class="pedal pedal--brake" type="button" data-control="brake">BRAKE</button>
+          <button class="pedal pedal--gas" type="button" data-control="gas">GAS</button>
+          <button class="tilt" type="button" data-control="leanBack" aria-label="Tilt back">◀ Tilt</button>
+          <button class="tilt" type="button" data-control="leanForward" aria-label="Tilt forward">Tilt ▶</button>
+        </div>
+      </section>
+
+      <aside class="dash dash--right glass" aria-label="Run statistics">
+        <h2>Run</h2>
+        <dl>
+          <dt>Distance</dt><dd id="dash-dist">0 m</dd>
+          <dt>Coins</dt><dd id="dash-coins">0</dd>
+          <dt>Gear</dt><dd id="dash-gear">1</dd>
+          <dt>Best</dt><dd id="dash-best">0 m</dd>
+        </dl>
+        <h2>Top 10</h2>
+        <ol id="leaderboard" class="leaderboard"></ol>
+      </aside>
+    </main>
+
+    <footer class="signature">
+      <p class="signature__text">Idea By: Azmat Ali</p>
+    </footer>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
