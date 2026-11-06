@@ -1,51 +1,88 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  gearIndexFor,
+  displayGear,
   rpmFor,
-  pickGear,
   engineHz,
+  engineParams,
+  masterGain,
+  rmsOfBytes,
+  GEAR_COUNT,
   GEAR_RATIOS,
+  GEAR_TOP_MPS,
   IDLE_RPM,
   MAX_RPM,
+  STOP_SPEED,
 } from '../src/audio/engine-sound.js';
 
-test('engine RPM is clamped to idle at standstill and to the redline at high speed', () => {
-  assert.equal(rpmFor(0, 0), IDLE_RPM);
-  assert.equal(rpmFor(200, 0), MAX_RPM);
-});
-
-test('RPM rises with speed in a fixed gear and falls in a higher gear', () => {
-  assert.ok(rpmFor(10, 0) < rpmFor(15, 0));
-  assert.ok(rpmFor(20, 2) < rpmFor(20, 1));
-});
-
-test('the gearbox upshifts at high RPM and downshifts at low RPM, one gear per call', () => {
-  // About 23 m/s puts first gear just above the 5600 RPM upshift point
-  const fast = 23;
-  const up = pickGear(fast, 0);
-  assert.equal(up, 1);
-  // Top gear at top speed (27 m/s) stays engaged: RPM is between the shift points
-  assert.equal(pickGear(27, GEAR_RATIOS.length - 1), GEAR_RATIOS.length - 1);
-
-  // Slow in top gear drops a gear
-  assert.equal(pickGear(3, 4), 3);
-  // Standstill in first stays in first
-  assert.equal(pickGear(0, 0), 0);
-});
-
-test('a gear change is always at most one step', () => {
-  for (let v = 0; v < 40; v += 0.5) {
-    for (let g = 0; g < GEAR_RATIOS.length; g += 1) {
-      assert.ok(Math.abs(pickGear(v, g) - g) <= 1);
-    }
+test('the gearbox climbs to fifth gear as the car speeds up', () => {
+  let g = 0;
+  const seen = new Set();
+  for (let v = 0; v <= 27; v += 0.25) {
+    g = gearIndexFor(v, g);
+    seen.add(g);
   }
+  assert.equal(g, GEAR_COUNT - 1);
+  assert.deepEqual([...seen].sort(), [0, 1, 2, 3, 4]);
+});
+
+test('the gearbox steps back down as the car slows', () => {
+  assert.equal(gearIndexFor(27, 4), 4);
+  assert.equal(gearIndexFor(17, 4), 4); // above the 16.8 m/s downshift point
+  assert.equal(gearIndexFor(16, 4), 3); // below it
+  assert.equal(gearIndexFor(3, 4), 0);
+});
+
+test('the dashboard shows 0 when stopped and 1..5 when moving', () => {
+  assert.equal(displayGear(0, 0), 0);
+  assert.equal(displayGear(STOP_SPEED / 2, 0), 0);
+  assert.equal(displayGear(2, 0), 1);
+  assert.equal(displayGear(27, 4), 5);
+});
+
+test('RPM stays within the engine range and is about 5000 at each gear top speed', () => {
+  for (let i = 0; i < GEAR_COUNT; i += 1) {
+    const rpm = rpmFor(GEAR_TOP_MPS[i], i);
+    assert.ok(Math.abs(rpm - 5000) < 1, `gear ${i + 1} rpm ${rpm}`);
+    assert.ok(GEAR_RATIOS[i] > 0);
+  }
+  assert.equal(rpmFor(0, 0), IDLE_RPM);
+  assert.equal(rpmFor(500, 0), MAX_RPM);
+});
+
+test('RPM drops at each upshift, as in a real gearbox', () => {
+  const before = rpmFor(11, 0);
+  const after = rpmFor(11, 1);
+  assert.ok(after < before);
 });
 
 test('engine pitch rises with RPM and with throttle, within the audible band', () => {
   assert.ok(engineHz(1000, 0) < engineHz(4000, 0));
   assert.ok(engineHz(4000, 0) < engineHz(4000, 1));
-  const low = engineHz(IDLE_RPM, 0);
-  const high = engineHz(MAX_RPM, 1);
-  assert.ok(low >= 30 && low <= 40, `idle ${low}`);
-  assert.ok(high > 200 && high < 260, `redline ${high}`);
+  assert.ok(engineHz(IDLE_RPM, 0) >= 50 && engineHz(IDLE_RPM, 0) <= 60);
+  assert.ok(engineHz(MAX_RPM, 1) > 300 && engineHz(MAX_RPM, 1) < 340);
+});
+
+test('full throttle is louder than idle, and brake squeal only plays while moving', () => {
+  const idle = engineParams({ speed: 0, throttle: 0, brake: false, gearIndex: 0 });
+  const full = engineParams({ speed: 20, throttle: 1, brake: false, gearIndex: 3 });
+  assert.ok(full.engineGain > idle.engineGain);
+  assert.equal(engineParams({ speed: 0, throttle: 0, brake: true, gearIndex: 0 }).brakeGain, 0);
+  assert.ok(engineParams({ speed: 20, throttle: 0, brake: true, gearIndex: 3 }).brakeGain > 0);
+});
+
+test('the master gain follows the volume slider and mute', () => {
+  assert.equal(masterGain(0), 0);
+  assert.ok(masterGain(1) > masterGain(0.5));
+  assert.ok(masterGain(1) <= 1, 'leave headroom below full scale');
+  assert.equal(masterGain(1, true), 0);
+  assert.equal(masterGain(2), masterGain(1), 'volume is clamped');
+});
+
+test('loudness of a full-scale sine is about 0.7 RMS and silence is 0', () => {
+  const sine = new Uint8Array(512);
+  for (let i = 0; i < sine.length; i += 1) sine[i] = Math.round(128 + 127 * Math.sin((i / 512) * 2 * Math.PI * 8));
+  assert.ok(Math.abs(rmsOfBytes(sine) - 0.7) < 0.05);
+  assert.equal(rmsOfBytes(new Uint8Array(512).fill(128)), 0);
 });

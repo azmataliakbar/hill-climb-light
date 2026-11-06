@@ -279,27 +279,6 @@
   transform: scale(0.98);
 }
 
-.tilt {
-  grid-column: span 1;
-  min-height: 52px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.06);
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.tilt.is-active {
-  background: rgba(0, 245, 255, 0.22);
-  box-shadow: 0 0 18px rgba(0, 245, 255, 0.5);
-}
-
 /* ---------- Dashboard and leaderboard ---------- */
 
 .dial {
@@ -376,5 +355,49 @@
 
   .card h2 {
     font-size: 16px;
+  }
+}
+
+.volume {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.volume input {
+  width: 90px;
+  accent-color: var(--magenta);
+}
+
+.chip--sound {
+  color: #041018;
+  border-color: transparent;
+  background: var(--lime);
+  font-weight: 700;
+  cursor: pointer;
+  animation: warn-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@media (max-width: 767px) {
+  .volume input {
+    width: 60px;
+  }
+}
+
+/* Phones: the top bar's controls wrap onto their own row instead of running off the screen. */
+@media (max-width: 599px) {
+  .topbar__actions {
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .volume input {
+    width: 50px;
   }
 }

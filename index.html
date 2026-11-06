@@ -33,7 +33,12 @@
         <span id="hud-tilt" class="chip chip--warn" hidden>⚠ Tilt</span>
       </div>
       <div class="topbar__actions">
-        <button id="btn-sound" class="btn btn--ghost" type="button">Sound on</button>
+        <button id="sound-status" class="chip chip--sound" type="button" hidden>Tap for sound</button>
+        <label class="volume" title="Volume">
+          <span aria-hidden="true">🔊</span>
+          <input id="volume" type="range" min="0" max="100" value="80" aria-label="Volume" />
+        </label>
+        <button id="btn-sound" class="btn btn--ghost" type="button">Mute</button>
         <button id="btn-pause" class="btn btn--ghost" type="button">Pause</button>
       </div>
     </header>
@@ -95,8 +100,6 @@
         <div class="pedals" aria-label="On-screen pedals">
           <button class="pedal pedal--brake" type="button" data-control="brake">BRAKE</button>
           <button class="pedal pedal--gas" type="button" data-control="gas">GAS</button>
-          <button class="tilt" type="button" data-control="leanBack" aria-label="Tilt back">◀ Tilt</button>
-          <button class="tilt" type="button" data-control="leanForward" aria-label="Tilt forward">Tilt ▶</button>
         </div>
       </section>
 

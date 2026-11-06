@@ -16,13 +16,19 @@ Open http://localhost:8080. ES modules need HTTP, so opening `index.html` direct
 ## Controls
 
 - Keyboard: `W` / `↑` gas, `S` / `↓` brake, `A` / `←` tilt back, `D` / `→` tilt forward. `P` or `Esc` pauses.
-- Touch: **GAS** and **BRAKE** pedals, with **Tilt** buttons underneath. Keyboard and touch work together, and multi-touch is supported.
+- Touch: **GAS** and **BRAKE** pedals. Keyboard and touch work together, and multi-touch is supported. Tilt is keyboard-only (A / D).
+- Volume slider in the top bar. If the browser blocks sound, a green **Tap for sound** chip appears.
 
 ## Sessions and difficulty
 
 - **Three tries:** each attempt ends when the car crashes. Attempt score = distance (m) + 10 per coin. The session total is the sum of the three.
 - **Replay track** keeps the same seed and difficulty. **New game** starts a new track.
 - **Easy** forgives tilt. **Hard** has a higher centre of mass, so throttle lifts the nose and brakes dip it. Holding a wheelie or a nose-dive past the warning angle for 0.8 s tips the car over.
+
+## Gears and sound
+
+- Five gears shift automatically with speed (about 6, 11, 16 and 21 m/s). The dashboard shows 0 when stopped.
+- Synthesised engine (sawtooth and square voices), brake squeal, and coin, crash, and gear sounds. No audio files.
 
 ## Layout
 

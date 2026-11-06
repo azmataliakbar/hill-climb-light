@@ -39,6 +39,8 @@ const dom = {
   dashAttempt: $('#dash-attempt'),
   leaderboard: $('#leaderboard'),
   soundButton: $('#btn-sound'),
+  soundStatus: $('#sound-status'),
+  volume: $('#volume'),
   pauseButton: $('#btn-pause'),
   attemptTitle: $('#attempt-title'),
   attemptSummary: $('#attempt-summary'),
@@ -70,6 +72,8 @@ let engineInfo = { gear: 0, rpm: 800, hz: 35 };
 let bestDistance = 0;
 let sessionBestDistance = 0; // best distance in the current session, shown before any save
 let hudKey = '';
+let lastCoins = 0;
+let lastGear = 0;
 
 const commands = createGameCommands({
   session: {
@@ -99,6 +103,8 @@ function beginAttempt() {
   const session = sessions.current;
   run = createRun({ seed: session.seed, difficulty: session.difficulty });
   runSaved = false;
+  lastCoins = 0;
+  lastGear = 0;
   mode = 'running';
   renderer.resize();
   showPanel(null);
@@ -135,6 +141,7 @@ function describeRun(r) {
 
 /** Called when a run crashes: records the attempt, saves coins, and shows the result. */
 function finishAttempt() {
+  engine.play('crash');
   if (!runSaved) {
     runSaved = true;
     const result = dispatch('game.finishAttempt', { distance: run.distance, coins: run.runCoins });
@@ -248,11 +255,11 @@ function updateHud() {
   hudKey = key;
   dom.hudDist.textContent = run.distance;
   dom.hudCoins.textContent = run.runCoins;
-  dom.hudGear.textContent = engineInfo.gear + 1;
+  dom.hudGear.textContent = engineInfo.gear;
   dom.hudAttempt.textContent = label;
   dom.dashDist.textContent = `${run.distance} m`;
   dom.dashCoins.textContent = run.runCoins;
-  dom.dashGear.textContent = engineInfo.gear + 1;
+  dom.dashGear.textContent = engineInfo.gear;
   dom.dashBest.textContent = `${bestDistance} m`;
   dom.dashAttempt.textContent = `${label} · ${run.difficulty}`;
 }
@@ -262,31 +269,52 @@ const loop = createGameLoop({
   update(dt) {
     if (mode !== 'running') return;
     stepRun(run, input.state(), dt);
+    if (run.runCoins > lastCoins) {
+      lastCoins = run.runCoins;
+      engine.play('coin');
+    }
     if (run.status === 'crashed') finishAttempt();
   },
   render() {
     if (run) renderer.draw(run);
     const car = run?.car;
-    const speed = mode === 'running' && car ? car.vx : 0;
-    const throttle = mode === 'running' && car ? car.throttle : 0;
-    engineInfo = engine.update({ speed: Math.abs(speed), throttle });
+    const moving = mode === 'running' && car;
+    const speed = moving ? car.vx : 0;
+    const throttle = moving ? car.throttle : 0;
+    const brake = moving ? input.state().brake : false;
+    engineInfo = engine.update({ speed: Math.abs(speed), throttle, brake });
+    if (moving && engineInfo.gear > lastGear) engine.play('gear');
+    if (moving) lastGear = engineInfo.gear;
     if (dom.dialSpeed.offsetParent !== null) {
       drawDial(dom.dialSpeed, { value: Math.abs(speed) * 3.6, max: 120, label: 'KM/H' });
       drawDial(dom.dialRpm, { value: engineInfo.rpm / 100, max: 70, label: 'RPM ×100', color: '#ff2d95' });
     }
     updateTilt();
     updateHud();
+    updateSoundStatus();
   },
 });
 
-async function toggleSound() {
+function updateSoundStatus() {
+  // Show a tap target when the browser has not let audio start yet.
+  const blocked = engine.supported && !engine.muted && !engine.running;
+  if (dom.soundStatus.hidden === blocked) dom.soundStatus.hidden = !blocked;
+  dom.soundButton.textContent = engine.muted ? 'Unmute' : 'Mute';
+}
+
+async function enableSound() {
   if (!engine.supported) return;
-  if (!engine.muted) engine.setMuted(true);
+  engine.setMuted(false);
+  await engine.start();
+  updateSoundStatus();
+}
+
+function toggleMute() {
+  if (engine.muted) enableSound();
   else {
-    engine.setMuted(false);
-    await engine.start();
+    engine.setMuted(true);
+    updateSoundStatus();
   }
-  dom.soundButton.textContent = engine.muted ? 'Sound off' : 'Sound on';
 }
 
 // Wiring
@@ -306,7 +334,9 @@ $('#btn-menu-paused').addEventListener('click', openMenu);
 $('#btn-menu-final').addEventListener('click', openMenu);
 dom.saveButton.addEventListener('click', saveScore);
 dom.pauseButton.addEventListener('click', () => (mode === 'running' ? pause() : resume()));
-dom.soundButton.addEventListener('click', toggleSound);
+dom.soundButton.addEventListener('click', toggleMute);
+dom.soundStatus.addEventListener('click', enableSound);
+dom.volume.addEventListener('input', () => engine.setVolume(Number(dom.volume.value) / 100));
 
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
